@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div data-role="header" data-position="fixed">
+<h1 id="vehicle_name">{{ vehicle_name }}</h1>
+</div>
+<div role="main" class="ui-content">
+    <ul data-role="listview">
+        <li>Climate <input type="checkbox" data-role="flipswitch" name="ac_button" id="ac_button"></li>
+        <li>Temperature setting <span id="temp_setting">?</span> &#176;<span class="gui_temperature_units">C</span></li>
+        <li>Interior <span id="inside_temp">?</span> &#176;<span class="gui_temperature_units">C</span></li>
+        <li>Outside <span id="outside_temp">?</span> &#176;<span class="gui_temperature_units">C</span></li>
+        <li>Battery level <span id="battery_level">?</span> %</li>
+    </ul>
+    <script>
+    var skipChangeEvent = false;
+    var skipClimateStateUpdate = false;
+    $(document).on( "pagecreate", "#page-one", function() {
+        function updateData(){
+            $.ajax({
+                url: "{{ url_for('user_page', user_id=user_id, json=true) }}",
+                dataType: "json",
+                cache: false,
+                success: function(data) {
+                    if (data.api_error === true) {
+                        return;
+                    }
+                    $('#vehicle_name').html(data.vehicle_name);
+                    $('#battery_level').html(data.battery_level);
+                    $('#temp_setting').html(data.temp_setting);
+                    $('#inside_temp').html(data.inside_temp);
+                    $('#outside_temp').html(data.outside_temp);
+                    $('.gui_temperature_units').text(data.gui_temperature_units);
+                    if (window.skipClimateStateUpdate) {
+                        return;
+                    }
+                    if (data.is_climate_on === true && !$('#ac_button').prop('checked')) {
+                        window.skipChangeEvent = true;
+                        $('#ac_button').prop('checked', true).flipswitch('refresh');
+                        window.skipChangeEvent = false;
+                    } else if (data.is_climate_on === false && $('#ac_button').prop('checked')) {
+                        window.skipChangeEvent = true;
+                        $('#ac_button').prop('checked', false).flipswitch('refresh');
+                        window.skipChangeEvent = false;
+                    }
+                }             
+            });
+            setTimeout(updateData, 5000);              
+        }
+        updateData();
+    });
+
+    $(document).on('change', '#ac_button', function(e) {
+        if (window.skipChangeEvent) {
+            return;
+        }
+        var url = '{{ url_for('api') }}';
+        var state = $('#ac_button').prop('checked');
+        window.skipClimateStateUpdate = true;
+        if (state === true) {
+            $.post(url, {"user_id": '{{ user_id }}', "command": "start_climate"}, function(data){
+              if (data.result === true) {
+                  console.log('AC on.');
+              }
+            });
+        } else {
+            $.post(url, {"user_id": '{{ user_id }}', "command": "stop_climate"}, function(data){
+              if (data.result === true) {
+                  console.log('AC off.');
+              }
+            });
+        }
+        setTimeout(function(){ window.skipClimateStateUpdate = false; }, 5000);
+    });
+    </script>
+</div>
+{% endblock %}

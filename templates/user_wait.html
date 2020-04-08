@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block head %}
+  {{ super() }}
+  <meta http-equiv="refresh" content="300">
+{% endblock %}
+{% block content %}
+<div data-role="header" data-position="fixed">
+<h1>{{ title }} - Please Wait</h1>
+</div>
+<div role="main" class="ui-content">
+<h2>Your Access Begins at <span id="begins_at"></span></h2>
+</div>
+<script>
+    $(document).on( "pagecreate", "#page-one", function() {
+        var date = new Date({{ begins_at }} * 1000);
+        $('#begins_at').html(date.toString());
+    });
+</script>
+{% endblock %}

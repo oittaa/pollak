@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div data-role="header" data-position="fixed">
+<h1>{{ title }}</h1>
+</div>
+<div role="main" class="ui-content">
+{% if error_msg %}
+<h2>{{ error_msg }}</h2>
+<a href="{{ url_for('index') }}" class="ui-btn ui-corner-all ui-shadow">Go back</a>
+{% else %}
+{% if vehicles|length > 0 %}
+<h2>Grant Temporary Access to Your Tesla</h2>
+<form action="{{ url_for('authorize') }}" method="post">
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+{% for v in vehicles %}
+    <input type="radio" id="{{ v['id'] }}" name="vehicle" value="{{ v['id'] }}"{% if loop.first %} checked{% endif %}>
+    <label for="{{ v['id'] }}">{{ v['display_name'] }}</label>
+{% endfor %}
+    <div data-role="rangeslider">
+        <input type="range" name="begins_at" id="begins_at" value="0" min="0" max="{{ max_access_duration - 1 }}" data-highlight="true" data-popup-enabled="true">
+        <label for="begins_at">Select access starting and ending times in hours from this moment.</label><br>
+        <input type="range" name="expires_at" id="expires_at" value="24" min="1" max="{{ max_access_duration }}" data-highlight="true" data-popup-enabled="true">
+        <label for="expires_at">Select access starting and ending times in hours from this moment.</label><br>
+    </div>
+    <button>Grant access</button>
+</form>
+{% else %}
+<h2>No vehicles found!</h2>
+{% endif %}
+{% endif %}
+</div>
+{% endblock %}

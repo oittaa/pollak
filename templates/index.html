@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div data-role="header" data-position="fixed">
+<h1>{{ title }}</h1>
+<a href="{{ home_url }}" class="ui-btn ui-shadow ui-corner-all ui-icon-home ui-btn-icon-notext">Home</a>
+</div>
+<div role="main" class="ui-content">
+<h2>Grant Temporary Access to Your Tesla</h2>
+<form action="{{ url_for('login') }}" method="post">
+<a href="#popupAPI" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline">Tesla API Refresh Token</a>
+<div data-role="popup" id="popupAPI" class="ui-content">
+  <p>Your Tesla account's email and password are needed for the following command. After executing it you can extract the token from output.</p>
+  <h4>Input</h4>
+  <p><code>curl -X POST  -H 'Content-Type: application/json' -d '{"grant_type": "password", "client_id": "{{ oauth_client_id }}", "client_secret": "{{ oauth_client_secret }}", "email": "<strong>MYEMAIL@EMAIL.COM</strong>","password": "<strong>MYPASSWORD</strong>"}' 'https://owner-api.teslamotors.com/oauth/token'</code></p>
+  <h4>Output</h4>
+  <pre><code>{
+  "access_token":"ab54dc7fa54f8366c8c71a40f42c5a52d741dae535a8309c7a9b672175924997",
+  "token_type":"bearer",
+  "expires_in":3888000,
+  "refresh_token":"<strong>084777d15d9f51cda6e048a0ff914f849a2464ea16a7f5a215062f746ef5358f</strong>",
+  "created_at":1586114044
+}</code></pre>
+</div>
+    <input type="text" name="token" data-clear-btn="true" autocomplete="off">
+    <h2>or</h2>
+    <input type="email" name="email" data-clear-btn="true" autocomplete="on" placeholder="Email of Your Tesla Account">
+    <input type="password" name="password" data-clear-btn="true" autocomplete="off" placeholder="Password of Your Tesla Account">
+{% if recaptcha_site_key %}
+  <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+{% endif %}
+  <button>Log in</button>
+</form>
+<br>
+<a href="#faq" data-rel="popup" class="ui-btn ui-corner-all ui-shadow">FAQ</a>
+<div data-role="popup" id="faq" class="ui-content">
+  <a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
+  <h3>Pollak?</h3>
+  <p><a href="https://en.wikipedia.org/wiki/Karol_Pollak">Karol Pollak</a>  was a Polish electrotechnician, inventor and businessman. Tesla, Inc. seems to be sue happy with some sites containing "Tesla" in their name so it's better to avoid anything related to it.</p>
+  <h3>Why?</h3>
+  <p>Let's imagine you want to borrow your Tesla to a friend for a weekend. It would be really sweet if during that time your friend could remotely turn the climate control on every time they leave their house. Or maybe they'd like to know when the battery is full if they leave the car at a public charger. This app makes those things possible!</p>
+  <p>Hopefully this app will be obsolete one day, but unfortunately the current Tesla's identity and access management is a dumpster fire. You can't even protect your Tesla account with multifactor authentication in the year 2020.</p>
+  <h3>Are you going to steal my Tesla password?</h3>
+  <p>No, your email and password are only used for fetching a Tesla API token. Your password is never saved permanently.</p>
+  </p>It's still a good idea to distrust random websites. Get that API token yourself, and use it to log in here instead of your password.</p>
+  <h3>I want to revoke access to my car immediately from previously created temporary users.</h3>
+  <p>Change your Tesla account's password and all the previously generated tokens will become invalid.</p>
+  <h3>Is the source code available?</h3>
+  <p><a href="https://github.com/oittaa/pollak">Yes</a>! Pull requests welcome!</p>
+</div>
+{% if recaptcha_site_key %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endif %}
+</div>
+{% endblock %}

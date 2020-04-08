@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div data-role="header" data-position="fixed">
+<h1>{{ title }}</h1>
+</div>
+<div role="main" class="ui-content">
+<p>The following link grants access to your vehicle. Do not share it publicly!</p>
+<p><a href="{{ url_for('user_page', user_id=user_id) }}">{{ url_for('user_page', user_id=user_id, _external=True) }}</a></p>
+</div>
+{% endblock %}

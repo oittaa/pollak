@@ -1,0 +1,15 @@
+runtime: python37
+
+default_expiration: "7d"
+
+env_variables:
+  RECAPTCHA_SITE_KEY: 6LcH_uYUAAAAAMf8VkgQEQM7uAGcZjXKLm9RWewA
+
+handlers:
+- url: /favicon\.ico
+  static_files: static/favicon.ico
+  upload: static/favicon\.ico
+- url: /.*
+  script: auto
+  secure: always
+  redirect_http_response_code: 301
