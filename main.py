@@ -138,21 +138,23 @@ def user_page(user_id):
         return render_template("user_page.html", title=TITLE, user_id=user_id, vehicle_name=vehicle.display_name)
 
     api_error = False
-    battery_level = is_climate_on = temp_setting = inside_temp = outside_temp = gui_temperature_units = ""
+    response = {}
     try:
         _resp = vehicle.wake_up()
         data = vehicle.get_data()
-        battery_level = data['charge_state'].get('battery_level')
-        is_climate_on = data['climate_state'].get('is_climate_on')
-        temp_setting = data['climate_state'].get('driver_temp_setting')
-        inside_temp = data['climate_state'].get('inside_temp')
-        outside_temp = data['climate_state'].get('outside_temp')
-        gui_temperature_units = data['gui_settings'].get('gui_temperature_units')
+        response['battery_level'] = data['charge_state'].get('battery_level')
+        response['is_climate_on'] = data['climate_state'].get('is_climate_on')
+        response['temp_setting'] = data['climate_state'].get('driver_temp_setting')
+        response['inside_temp'] = data['climate_state'].get('inside_temp')
+        response['outside_temp'] = data['climate_state'].get('outside_temp')
+        response['gui_temperature_units'] = data['gui_settings'].get('gui_temperature_units')
+        response['locked'] = data['vehicle_state'].get('locked')
+        response['vehicle_name'] = vehicle.display_name
     except ApiError as e:
         api_error = True
         app.logger.info("Remote API error: {}".format(e))
 
-    return jsonify(vehicle_name=vehicle.display_name, battery_level=battery_level, is_climate_on=is_climate_on, temp_setting=temp_setting, inside_temp=inside_temp, outside_temp=outside_temp, gui_temperature_units=gui_temperature_units, api_error=api_error)        
+    return jsonify(response=response, api_error=api_error)        
 
 @app.route('/api', methods=['POST'])
 def api():
