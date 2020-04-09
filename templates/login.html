@@ -3,7 +3,7 @@
 <div data-role="header" data-position="fixed">
 <h1>{{ title }}</h1>
 </div>
-<div role="main" class="ui-content">
+<div role="main" class="ui-content center-wrapper">
 {% if error_msg %}
 <h2>{{ error_msg }}</h2>
 <a href="{{ url_for('index') }}" class="ui-btn ui-corner-all ui-shadow">Go back</a>
@@ -19,9 +19,9 @@
 {% endfor %}
     <div data-role="rangeslider">
         <input type="range" name="begins_at" id="begins_at" value="0" min="0" max="{{ max_access_duration - 1 }}" data-highlight="true" data-popup-enabled="true">
-        <label for="begins_at">Select access starting and ending times in hours from this moment.</label><br>
+        <label for="begins_at">Select access starting and ending times in hours from this moment.</label>
         <input type="range" name="expires_at" id="expires_at" value="24" min="1" max="{{ max_access_duration }}" data-highlight="true" data-popup-enabled="true">
-        <label for="expires_at">Select access starting and ending times in hours from this moment.</label><br>
+        <label for="expires_at">Select access starting and ending times in hours from this moment.</label>
     </div>
     <button>Grant access</button>
 </form>

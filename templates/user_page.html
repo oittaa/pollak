@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div data-role="header" data-position="fixed">
-<h1><span id="vehicle_name">{{ vehicle_name }}</span><span id="locked"></span></h1>
+<h1 id="vehicle_name">{{ vehicle_name }}</h1>
 </div>
-<div role="main" class="ui-content">
+<div role="main" class="ui-content center-wrapper">
     <ul data-role="listview">
         <li>Climate <input type="checkbox" data-role="flipswitch" name="ac_button" id="ac_button"></li>
         <li>Temperature setting <span id="temp_setting">?</span> &#176;<span class="gui_temperature_units">C</span></li>
@@ -11,6 +11,7 @@
         <li>Outside <span id="outside_temp">?</span> &#176;<span class="gui_temperature_units">C</span></li>
         <li>Battery level <span id="battery_level">?</span> %</li>
     </ul>
+    <div class="margin-top"><svg id="locked" width="32" height="32" viewbox="0 0 50 50"><use xlink:href="#"></use></svg></div>
     <script>
     var skipChangeEvent = false;
     var skipClimateStateUpdate = false;
@@ -31,9 +32,9 @@
                     $('#outside_temp').html(data.response.outside_temp);
                     $('.gui_temperature_units').text(data.response.gui_temperature_units);
                     if (data.response.locked === true) {
-                        $('#locked').html('	&#128274;');
+                        $('#locked').find("use").attr("xlink:href", "{{ url_for('static', filename='fa-solid.svg') }}#lock");
                     } else {
-                        $('#locked').html('	&#128275;');
+                        $('#locked').find("use").attr("xlink:href", "{{ url_for('static', filename='fa-solid.svg') }}#lock-open");
                     }
                     if (window.skipClimateStateUpdate) {
                         return;

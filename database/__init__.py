@@ -64,8 +64,9 @@ class Cache():
             return False
 
 class Database:
-    def __init__(self):
+    def __init__(self, cache_miss=True):
         self.cache = Cache()
+        self.cache_miss = cache_miss
         self.db = firestore.Client()
 
     def add_user(self, user_id, token, vehicle_id, begins_at, expires_at):
@@ -88,7 +89,10 @@ class Database:
         try:
             doc = doc_ref.get()
             data = doc.to_dict()
-            self.cache.add(user_id, data)
+            if self.cache_miss and data is None:
+                self.cache.add(user_id, False)
+            else:
+                self.cache.add(user_id, data)
             return data
         except google.cloud.exceptions.NotFound:
             return False

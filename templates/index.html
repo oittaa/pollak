@@ -4,10 +4,10 @@
 <h1>{{ title }}</h1>
 <a href="{{ home_url }}" class="ui-btn ui-shadow ui-corner-all ui-icon-home ui-btn-icon-notext">Home</a>
 </div>
-<div role="main" class="ui-content">
+<div role="main" class="ui-content center-wrapper">
 <h2>Grant Temporary Access to Your Tesla</h2>
 <form action="{{ url_for('login') }}" method="post">
-<a href="#popupAPI" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline">Tesla API Refresh Token</a>
+<a href="#popupAPI" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-icon-left ui-icon-info ui-btn-inline">Tesla API Refresh Token</a>
 <div data-role="popup" id="popupAPI" class="ui-content">
   <p>Your Tesla account's email and password are needed for the following command. After executing it you can extract the token from output.</p>
   <h4>Input</h4>
@@ -30,8 +30,7 @@
 {% endif %}
   <button>Log in</button>
 </form>
-<br>
-<a href="#faq" data-rel="popup" class="ui-btn ui-corner-all ui-shadow">FAQ</a>
+<a href="#faq" data-rel="popup" class="margin-top ui-btn ui-corner-all ui-shadow ui-btn-icon-left ui-icon-info ui-btn-inline">FAQ</a>
 <div data-role="popup" id="faq" class="ui-content">
   <a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
   <h3>Pollak?</h3>
@@ -41,7 +40,7 @@
   <p>Hopefully this app will be obsolete one day, but unfortunately the current Tesla's identity and access management is a dumpster fire. You can't even protect your Tesla account with multifactor authentication in the year 2020.</p>
   <h3>Are you going to steal my Tesla password?</h3>
   <p>No, your email and password are only used for fetching a Tesla API token. Your password is never saved permanently.</p>
-  </p>It's still a good idea to distrust random websites. Get that API token yourself, and use it to log in here instead of your password.</p>
+  <p>It's still a good idea to distrust random websites. Get that API token yourself, and use it to log in here instead of your password.</p>
   <h3>I want to revoke access to my car immediately from previously created temporary users.</h3>
   <p>Change your Tesla account's password and all the previously generated tokens will become invalid.</p>
   <h3>Is the source code available?</h3>
