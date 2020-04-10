@@ -1,6 +1,5 @@
 import re
 from csrf import check_csrf_token, make_csrf_token
-from database import Database
 from flask import Flask, abort, jsonify, make_response, render_template, request, url_for
 from os import getenv
 from secretmanager import access_secret_version
@@ -15,8 +14,10 @@ MAX_ACCESS_DURATION = getenv('MAX_ACCESS_DURATION', 240)
 INDEX_CACHE_CONTROL = getenv('INDEX_CACHE_CONTROL', 'public, max-age=600')
 RECAPTCHA_SITE_KEY = getenv('RECAPTCHA_SITE_KEY', None)
 PROJECT_ID = getenv('PROJECT_ID', getenv('GOOGLE_CLOUD_PROJECT', None))
+SECRET_KEY = getenv('SECRET_KEY', None)
+SKIP_DATABASE_CONNECTION = getenv('SKIP_DATABASE_CONNECTION', None)
 
-# Enable GCP Logging if inside an App Engine
+# Enable GCP Logging if inside an App Engine instance
 if getenv('GAE_APPLICATION', None):
     # Imports the Google Cloud client library
     import google.cloud.logging
@@ -29,13 +30,12 @@ if getenv('GAE_APPLICATION', None):
     log_client.setup_logging()
 
 # If env variable SECRET_KEY is not defined, fetch it from Secret Manager
-SECRET_KEY = getenv('SECRET_KEY', None)
 if SECRET_KEY is None:
     SECRET_KEY_ID = getenv('SECRET_KEY_ID', 'GAE_SECRET_KEY')
     SECRET_KEY = access_secret_version(PROJECT_ID, SECRET_KEY_ID)
 
+# If env variable RECAPTCHA_SITE_SECRET is not defined, fetch it from Secret Manager
 if RECAPTCHA_SITE_KEY:
-    # If env variable RECAPTCHA_SITE_SECRET is not defined, fetch it from Secret Manager
     from recaptcha import verify_recaptcha, RECAPTCHA_RESPONSE_PARAM
     RECAPTCHA_SITE_SECRET = getenv('RECAPTCHA_SITE_SECRET', None)
     if RECAPTCHA_SITE_SECRET is None:
@@ -49,7 +49,12 @@ if RECAPTCHA_SITE_KEY:
 app = Flask(__name__)
 
 # database abstraction
-db = Database()
+if SKIP_DATABASE_CONNECTION:
+    from database import MemoryDatabase
+    db = MemoryDatabase()
+else:
+    from database import Firestore
+    db = Firestore()
 
 @app.route('/', methods=['GET'])
 def index():
@@ -81,7 +86,7 @@ def login():
         if verify_recaptcha(response, RECAPTCHA_SITE_SECRET):
             app.logger.info('reCAPTCHA success')
         else:
-            app.logger.info('reCAPTCHA failure')
+            app.logger.warning('reCAPTCHA failure')
             error_msg = 'reCAPTCHA failure'
 
     client = TeslaApiClient(email, password, token)
@@ -99,7 +104,7 @@ def login():
 @app.route('/authorize', methods=['POST'])
 def authorize():
     if not check_csrf_token(request.form['token'], SECRET_KEY, request.form['csrf']):
-        app.logger.info('CSRF failed')
+        app.logger.warning('CSRF failed')
         abort(403)
     try:
         vehicle_id = request.form['vehicle']
@@ -165,7 +170,7 @@ def user_page(user_id):
         response['vehicle_name'] = vehicle.display_name
     except ApiError as e:
         api_error = True
-        app.logger.info("Remote API error: {}".format(e))
+        app.logger.info("Remote API error: %s", e)
 
     return jsonify(response=response, api_error=api_error)        
 
@@ -206,7 +211,7 @@ def api():
             data = vehicle.climate.stop_climate()
     except ApiError as e:
         data = { 'result': False }
-        app.logger.info("Remote API error: {}".format(e))
+        app.logger.info("Remote API error: %s", e)
     return jsonify(data)
 
 @app.route('/cron', methods=['GET'])

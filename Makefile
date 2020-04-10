@@ -1,4 +1,4 @@
-.PHONY: all generate_sri_hashes generate_secret_key
+.PHONY: all generate_sri_hashes generate_secret_key test_server deploy_to_gae test deploy
 
 all: generate_sri_hashes generate_secret_key
 

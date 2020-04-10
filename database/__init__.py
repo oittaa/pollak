@@ -1,8 +1,7 @@
+from logging import getLogger
 from time import time
 
-from google.cloud import firestore
-import google.cloud.exceptions
-
+log = getLogger(__name__)
 
 class Cache():
     def __init__(self, threshold=1000, default_timeout=300):
@@ -63,9 +62,42 @@ class Cache():
         except KeyError:
             return False
 
-class Database:
-    def __init__(self, cache_miss=True):
-        self.cache = Cache()
+# Memory database for local testing
+class MemoryDatabase:
+    def __init__(self, threshold=10000, default_timeout=0):        
+        log.warning('Using: MemoryDatabase - All data will be lost on restart!')
+
+        self.cache = Cache(threshold=threshold, default_timeout=default_timeout)
+
+    def add_user(self, user_id, token, vehicle_id, begins_at, expires_at):
+        data = {
+            "token": token,
+            "vehicle_id": vehicle_id,
+            "begins_at": begins_at,
+            "expires_at": expires_at
+        }
+        self.cache.add(user_id, data)
+        return True
+
+    def get_user(self, user_id):
+        return self.cache.get(user_id)
+
+    def delete_user(self, user_id):
+        self.cache.delete(user_id)
+        return True
+
+    def cleanup(self):
+        return True
+
+# Cloud Firestore https://cloud.google.com/firestore/docs/quickstart-servers
+class Firestore:
+    def __init__(self, cache_threshold=1000, cache_timeout=300, cache_miss=True):
+        from google.cloud import firestore
+        import google.cloud.exceptions
+
+        log.info('Using: Cloud Firestore')
+
+        self.cache = Cache(threshold=cache_threshold, default_timeout=cache_timeout)
         self.cache_miss = cache_miss
         self.db = firestore.Client()
 
@@ -105,6 +137,9 @@ class Database:
     def cleanup(self):
         now = int(time())
         docs = self.db.collection(u'users').where(u'expires_at', u'<=', now).stream()
+        counter = 0
         for doc in docs:
             doc.reference.delete()
+            counter = counter + 1
+        log.info('Deleted %d documents.', counter)
         return True
