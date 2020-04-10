@@ -16,6 +16,18 @@ INDEX_CACHE_CONTROL = getenv('INDEX_CACHE_CONTROL', 'public, max-age=600')
 RECAPTCHA_SITE_KEY = getenv('RECAPTCHA_SITE_KEY', None)
 PROJECT_ID = getenv('PROJECT_ID', getenv('GOOGLE_CLOUD_PROJECT', None))
 
+# Enable GCP Logging if inside an App Engine
+if getenv('GAE_APPLICATION', None):
+    # Imports the Google Cloud client library
+    import google.cloud.logging
+
+    # Instantiates a client
+    log_client = google.cloud.logging.Client()
+
+    # Connects the logger to the root logging handler; by default this captures
+    # all logs at INFO level and higher
+    log_client.setup_logging()
+
 # If env variable SECRET_KEY is not defined, fetch it from Secret Manager
 SECRET_KEY = getenv('SECRET_KEY', None)
 if SECRET_KEY is None:
@@ -143,6 +155,7 @@ def user_page(user_id):
         _resp = vehicle.wake_up()
         data = vehicle.get_data()
         response['battery_level'] = data['charge_state'].get('battery_level')
+        response['charging_state'] = data['charge_state'].get('charging_state')
         response['is_climate_on'] = data['climate_state'].get('is_climate_on')
         response['temp_setting'] = data['climate_state'].get('driver_temp_setting')
         response['inside_temp'] = data['climate_state'].get('inside_temp')

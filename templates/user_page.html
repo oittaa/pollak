@@ -11,7 +11,14 @@
         <li>Outside <span id="outside_temp">?</span> &#176;<span class="gui_temperature_units">C</span></li>
         <li>Battery level <span id="battery_level">?</span> %</li>
     </ul>
-    <div class="margin-top"><svg id="locked" width="32" height="32" viewbox="0 0 50 50"><use xlink:href="#"></use></svg></div>
+    <div class="margin-top">
+        <svg id="locked" width="32" height="32" viewbox="0 0 50 50">
+            <use xlink:href="#"></use>
+        </svg>
+        <svg id="charging_state" width="32" height="32" viewbox="0 0 50 50">
+            <use xlink:href="#"></use>
+        </svg>
+    </div>
     <script>
     var skipChangeEvent = false;
     var skipClimateStateUpdate = false;
@@ -35,6 +42,11 @@
                         $('#locked').find("use").attr("xlink:href", "{{ url_for('static', filename='fa-solid.svg') }}#lock");
                     } else {
                         $('#locked').find("use").attr("xlink:href", "{{ url_for('static', filename='fa-solid.svg') }}#lock-open");
+                    }
+                    if (data.response.charging_state === 'Charging') {
+                        $('#charging_state').find("use").attr("xlink:href", "{{ url_for('static', filename='fa-solid.svg') }}#bolt");
+                    } else {
+                        $('#charging_state').find("use").attr("xlink:href", "#");
                     }
                     if (window.skipClimateStateUpdate) {
                         return;
