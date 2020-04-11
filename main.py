@@ -1,16 +1,20 @@
-import re
-from csrf import check_csrf_token, make_csrf_token
-from flask import Flask, abort, jsonify, make_response, render_template, request, url_for
+"""Pollak - Grant Temporary Access to Your Tesla."""
 from os import getenv
-from secretmanager import access_secret_version
-from tesla_api import TeslaApiClient, AuthenticationError, ApiError, OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET
+from re import sub
 from time import time
 from uuid import uuid4
+
+from flask import Flask, abort, jsonify, make_response, render_template, request
+from flask.logging import create_logger
+from csrf import check_csrf_token, make_csrf_token
+from secretmanager import access_secret_version
+from tesla_api import (TeslaApiClient, AuthenticationError, ApiError,
+                       OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET)
 
 TITLE = getenv('TITLE', 'Pollak')
 HOME_URL = getenv('HOME_URL', 'https://pollak.app')
 
-MAX_ACCESS_DURATION = getenv('MAX_ACCESS_DURATION', 240)
+MAX_ACCESS_DURATION = int(getenv('MAX_ACCESS_DURATION', '240'))
 INDEX_CACHE_CONTROL = getenv('INDEX_CACHE_CONTROL', 'public, max-age=600')
 RECAPTCHA_SITE_KEY = getenv('RECAPTCHA_SITE_KEY', None)
 PROJECT_ID = getenv('PROJECT_ID', getenv('GOOGLE_CLOUD_PROJECT', None))
@@ -23,11 +27,11 @@ if getenv('GAE_APPLICATION', None):
     import google.cloud.logging
 
     # Instantiates a client
-    log_client = google.cloud.logging.Client()
+    GCP_LOG_CLIENT = google.cloud.logging.Client()
 
     # Connects the logger to the root logging handler; by default this captures
     # all logs at INFO level and higher
-    log_client.setup_logging()
+    GCP_LOG_CLIENT.setup_logging()
 
 # If env variable SECRET_KEY is not defined, fetch it from Secret Manager
 if SECRET_KEY is None:
@@ -46,28 +50,31 @@ if RECAPTCHA_SITE_KEY:
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
-app = Flask(__name__)
+app = Flask(__name__)  # pylint: disable=invalid-name
+LOG = create_logger(app)
 
 # database abstraction
 if SKIP_DATABASE_CONNECTION:
     from database import MemoryDatabase
-    db = MemoryDatabase()
+    db = MemoryDatabase()  # pylint: disable=invalid-name
 else:
     from database import Firestore
-    db = Firestore()
+    db = Firestore()  # pylint: disable=invalid-name
 
 @app.route('/', methods=['GET'])
 def index():
+    """Main page."""
     response = make_response(render_template(
         "index.html", title=TITLE, home_url=HOME_URL, oauth_client_id=OAUTH_CLIENT_ID,
         oauth_client_secret=OAUTH_CLIENT_SECRET, recaptcha_site_key=RECAPTCHA_SITE_KEY))
-    if ('Cache-Control' not in response.headers):
+    if 'Cache-Control' not in response.headers:
         response.headers['Cache-Control'] = INDEX_CACHE_CONTROL
         response.add_etag()
     return response
 
 @app.route('/login', methods=['POST'])
 def login():
+    """After login, choose vehicle and access duration."""
     email = password = token = error_msg = csrf = None
 
     if request.form['token']:
@@ -84,9 +91,9 @@ def login():
         except ValueError:
             abort(400)
         if verify_recaptcha(response, RECAPTCHA_SITE_SECRET):
-            app.logger.info('reCAPTCHA success')
+            LOG.info('reCAPTCHA success')
         else:
-            app.logger.warning('reCAPTCHA failure')
+            LOG.warning('reCAPTCHA failure')
             error_msg = 'reCAPTCHA failure'
 
     client = TeslaApiClient(email, password, token)
@@ -99,12 +106,14 @@ def login():
         except AuthenticationError:
             error_msg = 'Authentication failure'
 
-    return render_template("login.html", title=TITLE, vehicles=vehicles, token=token, csrf=csrf, max_access_duration=MAX_ACCESS_DURATION, error_msg=error_msg)
+    return render_template("login.html", title=TITLE, vehicles=vehicles, token=token,
+                           csrf=csrf, max_access_duration=MAX_ACCESS_DURATION, error_msg=error_msg)
 
 @app.route('/authorize', methods=['POST'])
 def authorize():
+    """Authorize access and show the URL for user page."""
     if not check_csrf_token(request.form['token'], SECRET_KEY, request.form['csrf']):
-        app.logger.warning('CSRF failed')
+        LOG.warning('CSRF failed')
         abort(403)
     try:
         vehicle_id = request.form['vehicle']
@@ -114,7 +123,7 @@ def authorize():
         assert 0 <= begins_at <= MAX_ACCESS_DURATION - 1
         assert 1 <= expires_at <= MAX_ACCESS_DURATION
         assert begins_at < expires_at
-    except (ValueError, AssertionError) as e:
+    except (ValueError, AssertionError) as _error_msg:
         abort(400)
     token = _get_token(refresh_token=request.form['token'])
     client = TeslaApiClient(token=token)
@@ -128,11 +137,18 @@ def authorize():
     now = int(time())
     begins_at = now + begins_at * 3600
     expires_at = now + expires_at * 3600
-    db.add_user(user_id, client.token, vehicle_id, begins_at, expires_at)
+    data = {
+        "token": client.token,
+        "vehicle_id": vehicle_id,
+        "begins_at": begins_at,
+        "expires_at": expires_at
+        }
+    db.add_user(user_id, data)
     return render_template("authorize.html", title=TITLE, user_id=user_id)
 
 @app.route('/user/<uuid:user_id>', methods=['GET'])
 def user_page(user_id):
+    """Show the vehicle data associated with the user."""
     user_id = str(user_id)
     now = int(time())
     user_data = db.get_user(user_id)
@@ -152,12 +168,14 @@ def user_page(user_id):
 
     # Return template immediately and fill the rest with JSON-requests.
     if not request.args.get('json'):
-        return render_template("user_page.html", title=TITLE, user_id=user_id, vehicle_name=vehicle.display_name)
+        return render_template("user_page.html", title=TITLE, user_id=user_id,
+                               vehicle_name=vehicle.display_name)
 
     api_error = False
     response = {}
     try:
-        _resp = vehicle.wake_up()
+        if vehicle.state != "online":
+            _resp = vehicle.wake_up()
         data = vehicle.get_data()
         response['battery_level'] = data['charge_state'].get('battery_level')
         response['charging_state'] = data['charge_state'].get('charging_state')
@@ -168,14 +186,15 @@ def user_page(user_id):
         response['gui_temperature_units'] = data['gui_settings'].get('gui_temperature_units')
         response['locked'] = data['vehicle_state'].get('locked')
         response['vehicle_name'] = vehicle.display_name
-    except ApiError as e:
+    except ApiError as error_msg:
         api_error = True
-        app.logger.info("Remote API error: %s", e)
+        LOG.info("Remote API error: %s", error_msg)
 
-    return jsonify(response=response, api_error=api_error)        
+    return jsonify(response=response, api_error=api_error)
 
 @app.route('/api', methods=['POST'])
 def api():
+    """API to control the vehicle."""
     commands = ['start_climate', 'stop_climate']
     now = int(time())
 
@@ -209,13 +228,14 @@ def api():
             data = vehicle.climate.start_climate()
         if command == 'stop_climate':
             data = vehicle.climate.stop_climate()
-    except ApiError as e:
-        data = { 'result': False }
-        app.logger.info("Remote API error: %s", e)
+    except ApiError as error_msg:
+        data = {'result': False}
+        LOG.info("Remote API error: %s", error_msg)
     return jsonify(data)
 
 @app.route('/cron', methods=['GET'])
 def cron():
+    """Cron function that cleans expired users from the database."""
     if request.headers.get('X-Appengine-Cron') is None:
         abort(403)
     db.cleanup()
@@ -224,14 +244,14 @@ def cron():
 
 def _get_token(access_token="", refresh_token="", expires_in=0, created_at=0):
     return {
-            "access_token": _filter_input(access_token),
-            "refresh_token": _filter_input(refresh_token),
-            "expires_in": expires_in,
-            "created_at": created_at
+        "access_token": _filter_input(access_token),
+        "refresh_token": _filter_input(refresh_token),
+        "expires_in": expires_in,
+        "created_at": created_at
         }
 
 def _filter_input(string):
-    return re.sub('[^A-Za-z0-9]', '', string)
+    return sub('[^A-Za-z0-9]', '', string)
 
 if __name__ == '__main__':
     # This is used when running locally only. When deploying to Google App

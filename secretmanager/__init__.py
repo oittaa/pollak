@@ -1,3 +1,4 @@
+"""Google Cloud Platform Secret Manager."""
 from google.cloud import secretmanager
 
 def access_secret_version(project_id, secret_id, version_id='latest'):
@@ -18,4 +19,3 @@ def access_secret_version(project_id, secret_id, version_id='latest'):
     # WARNING: Do not print the secret in a production environment.
     payload = response.payload.data.decode('UTF-8')
     return payload
-

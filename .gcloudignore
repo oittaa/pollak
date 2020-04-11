@@ -19,3 +19,8 @@ __pycache__/
 /setup.cfg
 
 Makefile
+README.md
+requirements-dev.txt
+.editorconfig
+
+#!include:.gitignore
