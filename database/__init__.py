@@ -153,10 +153,17 @@ class Firestore:
         """Delete expired users from database."""
         now = int(time())
         docs = self.db_client.collection(u'users').where(u'expires_at', u'<=', now).stream()
+        batch = self.db_client.batch()
         counter = 0
         for doc in docs:
-            doc.reference.delete()
             counter = counter + 1
-        LOG.info('Deleted %d documents.', counter)
+            # Each transaction or batch of writes can write to a maximum of 500 documents.
+            # https://cloud.google.com/firestore/quotas#writes_and_transactions
+            if counter % 500 == 0:
+                batch.commit()
+                batch = self.db_client.batch()
+            batch.delete(doc.reference)
+        batch.commit()
+        LOG.info('Deleted %d documents in %d seconds.', counter, int(time()) - now)
         self.cache.cleanup()
         return True
