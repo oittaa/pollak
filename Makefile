@@ -1,4 +1,4 @@
-.PHONY: default help debug run test deploy deploy-dry-run venv requirements install install-dev check-coding-style generate-sri-hashes clean full-clean
+.PHONY: default help debug run test deploy deploy-dry-run venv requirements install install-dev check-coding-style generate-sri-hashes set-style-hash clean full-clean
 
 PYTHONPATH := .
 VENV := .venv
@@ -6,14 +6,15 @@ PYLINT := env PYTHONPATH=$(PYTHONPATH) $(VENV)/bin/pylint
 PYTHON := env PYTHONPATH=$(PYTHONPATH) $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTHON_MODULES := $(shell echo *.py $$(find . -path ./$(VENV) -prune -o -name '__init__.py' -printf '%h\n'))
+STYLECSS_HASH := $(shell sha256sum static/style.css | cut -d ' ' -f 1)
 
 DEFAULT_PYTHON := /usr/bin/python3
 VIRTUALENV := /usr/bin/virtualenv
 
 REQUIREMENTS := -r requirements.txt
-SECRET_KEY=$(shell $(DEFAULT_PYTHON) -c 'import secrets; print(secrets.token_hex(16))')
+SECRET_KEY := $(shell $(DEFAULT_PYTHON) -c 'import secrets; print(secrets.token_hex(16))')
 
-default: generate-sri-hashes check-coding-style		##- Generate SRI hashes and enforce a coding standard.
+default: generate-sri-hashes set-style-hash check-coding-style		##- Run: generate-sri-hashes set-style-hash check-coding-style
 
 help:			##- Show this help.
 	@sed -e '/#\{2\}-/!d; s/\\$$//; s/:[^#\t]*/:/; s/#\{2\}- *//' $(MAKEFILE_LIST)
@@ -58,6 +59,10 @@ generate-sri-hashes:	##- Generate Subresource Integrity hashes for stylesheets a
 			sed -i '/^\s*<\(link\|script\) /s#'$$url'#'$$url'" integrity="sha384-'$$sri'" crossorigin="anonymous#' $$f; \
 		done; \
 	done
+
+set-style-hash:		##- Add a hash at the end of the stylesheet URL to bust caches, if necessary.
+	@echo "Setting style.css hash"
+	sed -i "s/\('style.css') }}\)[^\"]*\"/\1\?$(STYLECSS_HASH)\"/" templates/base.html
 
 clean:			##- Clean byte-compiled / optimized / DLL files.
 	find . -name '*.pyc' -delete

@@ -4,6 +4,8 @@ Grant someone a temporary access to your Tesla vehicle.
 
 https://pollak.app
 
+![alt text](static/example.png "User interface example")
+
 ## How to run a local test server
 
 ```

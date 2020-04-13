@@ -161,7 +161,6 @@ class Firestore:
             # https://cloud.google.com/firestore/quotas#writes_and_transactions
             if counter % 500 == 0:
                 batch.commit()
-                batch = self.db_client.batch()
             batch.delete(doc.reference)
         batch.commit()
         LOG.info('Deleted %d documents in %d seconds.', counter, int(time()) - now)

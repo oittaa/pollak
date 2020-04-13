@@ -7,3 +7,15 @@
 .margin-top {
     margin-top: 30px;
 }
+.pop-out {
+    width: 50%;
+    height: auto;
+    transition: transform .5s;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 12px 12px 29px #555;
+}
+.pop-out:hover {
+    transform: scale(1.5, 1.5);
+}
