@@ -20,6 +20,7 @@ RECAPTCHA_SITE_KEY = getenv('RECAPTCHA_SITE_KEY', None)
 PROJECT_ID = getenv('PROJECT_ID', getenv('GOOGLE_CLOUD_PROJECT', None))
 SECRET_KEY = getenv('SECRET_KEY', None)
 SKIP_DATABASE_CONNECTION = getenv('SKIP_DATABASE_CONNECTION', None)
+SEND_FILE_MAX_AGE_DEFAULT = int(getenv('SEND_FILE_MAX_AGE_DEFAULT', '2592000'))
 
 # Enable GCP Logging if inside an App Engine instance
 if getenv('GAE_APPLICATION', None):
@@ -51,6 +52,7 @@ if RECAPTCHA_SITE_KEY:
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = Flask(__name__)  # pylint: disable=invalid-name
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = SEND_FILE_MAX_AGE_DEFAULT
 LOG = create_logger(app)
 
 # database abstraction
