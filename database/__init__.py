@@ -132,16 +132,13 @@ class Firestore:
             return data
 
         doc_ref = self.db_client.collection(u'users').document(user_id)
-        try:
-            doc = doc_ref.get()
-            data = doc.to_dict()
-            if self.cache_miss and data is None:
-                self.cache.add(user_id, False)
-            else:
-                self.cache.add(user_id, data)
-            return data
-        except google.cloud.exceptions.NotFound:
-            return False
+        doc = doc_ref.get()
+        data = doc.to_dict()
+        if data:
+            self.cache.add(user_id, data)
+        elif self.cache_miss:
+            self.cache.add(user_id, False)
+        return data
 
     def delete_user(self, user_id):
         """Delete user data from database."""
